@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Selection</title>
+<style>
+:root{--sky:#DDEEFF;--ink:#1B2A49;--muted:#51628A;--line:#BCD3EE;--true:#11904A;--true-bg:#DCF4E5;--false:#C92A3B;--false-bg:#FDE2E5;--amber:#F2A007;--code:#1F2238;
+  --display:"Trebuchet MS","Segoe UI",system-ui,sans-serif;--mono:Consolas,Menlo,"Courier New",monospace}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--sky);color:var(--ink);font-family:"Segoe UI",system-ui,sans-serif;line-height:1.5}
+.screen{display:none;min-height:100%;max-width:980px;margin:0 auto;padding:1.5rem 1rem 2.5rem}
+.screen.show{display:block}
+h1{font-family:var(--display);font-size:clamp(2.2rem,6vw,3.4rem);margin:0;line-height:1.1}
+h2{font-family:var(--display);font-size:clamp(1.5rem,4vw,2rem);margin:0}
+.btn{border:0;border-radius:14px;padding:.75rem 1.5rem;font-weight:700;font-size:1.15rem;cursor:pointer;background:var(--ink);color:#fff;font-family:inherit}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.light{background:#fff;color:var(--ink);border:2px solid var(--ink)}
+button:focus-visible{outline:3px solid var(--amber);outline-offset:3px}
+.top{display:flex;align-items:center;gap:1rem;margin-bottom:1rem;flex-wrap:wrap}
+.top h2{margin-right:auto}
+.card{background:#fff;border:2px solid var(--line);border-radius:20px;padding:1.5rem}
+
+/* home */
+#home{display:none;text-align:center;padding-top:8vh}
+#home.show{display:block}
+.def{font-size:1.3rem;max-width:34ch;margin:1rem auto 2.5rem;color:var(--muted)}
+.choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1.25rem;max-width:640px;margin:0 auto}
+.choice{background:#fff;border:3px solid var(--ink);border-radius:20px;padding:1.75rem 1rem;cursor:pointer;font-family:inherit;color:var(--ink)}
+.choice:hover{background:#FFF7E0}
+.choice b{display:block;font-family:var(--display);font-size:1.6rem}
+.choice span{color:var(--muted)}
+.choice svg{width:64px;height:64px;margin-bottom:.5rem}
+
+/* animation */
+.scene{border-radius:16px;overflow:hidden;border:2px solid var(--line);background:#BFE3FF}
+.scene svg{display:block;width:100%;height:auto}
+.caption{font-family:var(--display);font-size:clamp(1.2rem,3vw,1.6rem);font-weight:700;text-align:center;min-height:2.8em;margin:1rem 0 .5rem}
+.caption.t{color:var(--true)}.caption.f{color:var(--false)}
+.controls{display:flex;justify-content:center;gap:.75rem;flex-wrap:wrap}
+.road{transition:stroke .4s}
+.dia{transition:fill .4s}
+.endsign{transition:transform .3s}
+.def-box{background:#FFF0C7;border-radius:14px;padding:.8rem 1rem;font-size:1.15rem;margin-top:1.25rem;text-align:center}
+
+/* quiz */
+.progress{height:12px;background:var(--line);border-radius:99px;overflow:hidden;margin-bottom:1rem}
+.progress i{display:block;height:100%;background:var(--amber);transition:width .3s}
+.q{font-size:1.4rem;font-weight:700;margin:.25rem 0 1rem}
+.code{background:var(--code);color:#E9EBF7;border-radius:12px;font-family:var(--mono);font-size:1.15rem;padding:.6rem 1rem;margin-bottom:1rem;white-space:pre;overflow-x:auto}
+.k{color:#FF8FC6;font-weight:700}.s{color:#B6F089}
+.opts{display:grid;gap:.6rem}
+.opt{text-align:left;border:2px solid var(--line);background:#fff;border-radius:12px;padding:.85rem 1rem;font-size:1.15rem;cursor:pointer;font-family:inherit;color:var(--ink)}
+.opt:hover:not(:disabled){border-color:var(--ink)}
+.opt.t{border-color:var(--true);background:var(--true-bg)}.opt.f{border-color:var(--false);background:var(--false-bg)}
+.opt:disabled{cursor:default}
+.opt code{font-family:var(--mono);font-weight:700}
+.fb{margin-top:1rem;border-radius:12px;padding:.85rem 1rem;font-size:1.1rem;display:none}
+.fb.t{display:block;background:var(--true-bg)}.fb.f{display:block;background:var(--false-bg)}
+.end{text-align:center;padding:1rem 0}.end .big{font-family:var(--display);font-size:4.5rem;font-weight:700;margin:.25rem 0;line-height:1}
+#anim.show:fullscreen{display:flex;flex-direction:column;max-width:none;width:100%;height:100%;margin:0;padding:1rem 1.5rem;background:var(--sky);overflow:hidden}
+#anim:fullscreen .scene{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;background:transparent;border:0}
+#anim:fullscreen .scene svg{width:auto;height:auto;max-width:100%;max-height:100%;border-radius:16px;border:2px solid var(--line)}
+#anim:fullscreen .def-box{display:none}
+#anim:fullscreen .caption{margin:.75rem 0 .5rem}
+#jsWarn{background:#FDE2E5;border:3px solid #C92A3B;color:#1B2A49;border-radius:14px;padding:1rem 1.25rem;margin:1rem auto;max-width:760px;font-size:1.1rem}
+</style>
+</head>
+<body>
+<div id="jsWarn"><b>The interactive part of this page isn't running.</b> This usually means the file is being shown as a preview (for example in email, Teams, OneDrive or Google Drive) or in an old browser. Download the file, then open it in Google Chrome or Microsoft Edge.</div>
+
+<!-- ================= HOME ================= -->
+<section id="home" class="show">
+  <h1>Selection</h1>
+  <p class="def">How a program makes a decision based on a condition</p>
+  <div class="choices">
+    <button class="choice" data-go="anim">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="29" fill="#F2A007" stroke="#1B2A49" stroke-width="3"/><path d="M26 20 L46 32 L26 44Z" fill="#1B2A49"/></svg>
+      <b>Watch</b><span>See selection in action</span>
+    </button>
+    <button class="choice" data-go="quiz">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="29" fill="#11904A" stroke="#1B2A49" stroke-width="3"/><path d="M19 33 L28 42 L46 23" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <b>Quiz</b><span>Test what you know</span>
+    </button>
+  </div>
+</section>
+
+<!-- ================= ANIMATION ================= -->
+<section id="anim" class="screen">
+  <div class="top">
+    <button class="btn light" data-go="home">Back</button>
+    <h2>Who can go on the Swing Ship?</h2>
+    <button class="btn light" id="fsBtn">Full screen</button>
+    <button class="btn" data-go="quiz">Go to quiz</button>
+  </div>
+
+  <div class="scene">
+    <svg id="svg" viewBox="0 0 820 420" role="img" aria-label="A queue of people. Each person stops at a ticket booth where a staff member checks: is age 18 or more? True leads to the Swing Ship ride. False leads to the exit gate.">
+      <defs>
+        <linearGradient id="skyG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9FD3FF"/><stop offset="1" stop-color="#D6EEFF"/></linearGradient>
+        <linearGradient id="grassG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#A6D672"/><stop offset="1" stop-color="#86BF55"/></linearGradient>
+      </defs>
+      <rect width="820" height="420" fill="url(#skyG)"/>
+      <!-- clouds -->
+      <g fill="#fff" opacity=".9" id="clouds">
+        <g><ellipse cx="300" cy="40" rx="34" ry="14"/><ellipse cx="322" cy="30" rx="22" ry="14"/><ellipse cx="282" cy="32" rx="18" ry="11"/></g>
+        <g><ellipse cx="520" cy="62" rx="28" ry="11"/><ellipse cx="538" cy="54" rx="18" ry="11"/></g>
+      </g>
+      <!-- bunting -->
+      <path d="M0 8 Q 130 40 260 8" fill="none" stroke="#1B2A49" stroke-width="1.5"/>
+      <g stroke="#1B2A49" stroke-width="1">
+        <path d="M24 14 l12 3 -4 14z" fill="#F2A007"/><path d="M58 21 l12 2 -5 14z" fill="#C92A3B"/><path d="M94 25 l12 1 -6 14z" fill="#1C6FD1"/>
+        <path d="M130 26 l12 0 -6 14z" fill="#11904A"/><path d="M166 24 l12 -1 -5 14z" fill="#F2A007"/><path d="M202 19 l12 -2 -4 14z" fill="#C92A3B"/><path d="M236 12 l12 -3 -3 14z" fill="#1C6FD1"/>
+      </g>
+      <!-- ground -->
+      <path d="M0 125 Q 410 105 820 125 V420 H0Z" fill="url(#grassG)"/>
+      <!-- fence -->
+      <g stroke="#FFFFFF" stroke-width="4" opacity=".8">
+        <line x1="0" y1="138" x2="250" y2="132"/><line x1="0" y1="152" x2="250" y2="146"/>
+        <line x1="20" y1="126" x2="20" y2="160"/><line x1="80" y1="125" x2="80" y2="158"/><line x1="140" y1="123" x2="140" y2="156"/><line x1="200" y1="122" x2="200" y2="154"/>
+      </g>
+
+      <!-- paths -->
+      <g fill="none" stroke-linejoin="round" stroke-linecap="round">
+        <path d="M0 260 H440" stroke="#D9C59C" stroke-width="44"/>
+        <path id="roadT" d="M440 260 L500 165 H585" stroke="#D9C59C" stroke-width="40" style="transition:stroke .4s"/>
+        <path id="roadF" d="M440 260 L510 350 H700" stroke="#D9C59C" stroke-width="40" style="transition:stroke .4s"/>
+      </g>
+      <!-- queue ropes -->
+      <g stroke="#1B2A49" stroke-width="3">
+        <line x1="6" y1="232" x2="6" y2="204"/><line x1="132" y1="232" x2="132" y2="204"/><line x1="258" y1="232" x2="258" y2="204"/>
+        <path d="M6 208 Q69 224 132 208 Q195 224 258 208" fill="none" stroke="#C92A3B" stroke-width="4"/>
+      </g>
+
+      <!-- ride sign -->
+      <g>
+        <rect x="70" y="56" width="6" height="74" fill="#1B2A49"/><rect x="214" y="56" width="6" height="74" fill="#1B2A49"/>
+        <rect x="52" y="48" width="186" height="58" rx="12" fill="#fff" stroke="#1B2A49" stroke-width="3"/>
+        <text x="145" y="72" text-anchor="middle" font-family="Trebuchet MS,sans-serif" font-weight="700" font-size="18" fill="#1B2A49">Swing Ship</text>
+        <text x="145" y="95" text-anchor="middle" font-family="Trebuchet MS,sans-serif" font-weight="700" font-size="15" fill="#C92A3B">You must be 18 or older</text>
+      </g>
+
+      <!-- SWING SHIP -->
+      <g>
+        <line x1="690" y1="40" x2="610" y2="210" stroke="#1B2A49" stroke-width="9" stroke-linecap="round"/>
+        <line x1="690" y1="40" x2="770" y2="210" stroke="#1B2A49" stroke-width="9" stroke-linecap="round"/>
+        <rect x="586" y="150" width="34" height="34" fill="#F2A007" stroke="#1B2A49" stroke-width="2.5"/>
+        <g id="ship">
+          <line x1="690" y1="40" x2="635" y2="138" stroke="#5A6B8C" stroke-width="5"/>
+          <line x1="690" y1="40" x2="745" y2="138" stroke="#5A6B8C" stroke-width="5"/>
+          <g id="seats"></g>
+          <path d="M610 132 H770 Q 760 172 690 176 Q 620 172 610 132Z" fill="#C92A3B" stroke="#1B2A49" stroke-width="3"/>
+          <path d="M622 146 H758" stroke="#F2A007" stroke-width="5"/>
+          <circle cx="690" cy="40" r="7" fill="#F2A007" stroke="#1B2A49" stroke-width="2.5"/>
+        </g>
+        <line x1="690" y1="40" x2="690" y2="40" stroke="#1B2A49" stroke-width="9"/>
+        <line x1="600" y1="210" x2="780" y2="210" stroke="#1B2A49" stroke-width="5" stroke-linecap="round"/>
+      </g>
+      <g id="sparkles" opacity="0" style="transition:opacity .3s" font-size="26" font-family="Segoe UI Emoji,Apple Color Emoji,sans-serif">
+        <text x="600" y="30">✨</text><text x="760" y="28">✨</text>
+      </g>
+
+      <!-- EXIT GATE -->
+      <g>
+        <rect x="700" y="300" width="10" height="80" fill="#1B2A49"/>
+        <rect x="788" y="300" width="10" height="80" fill="#1B2A49"/>
+        <rect x="695" y="278" width="108" height="28" rx="6" fill="#11904A" stroke="#1B2A49" stroke-width="2.5"/>
+        <text x="749" y="298" text-anchor="middle" font-family="Trebuchet MS,sans-serif" font-weight="700" font-size="16" fill="#fff">EXIT</text>
+        <g id="gate" style="transform-origin:710px 340px;transform-box:view-box;transition:transform .7s ease">
+          <rect x="710" y="314" width="78" height="56" fill="none" stroke="#1B2A49" stroke-width="4"/>
+          <g stroke="#1B2A49" stroke-width="3"><line x1="729" y1="314" x2="729" y2="370"/><line x1="749" y1="314" x2="749" y2="370"/><line x1="769" y1="314" x2="769" y2="370"/><line x1="710" y1="370" x2="788" y2="314"/></g>
+        </g>
+      </g>
+
+      <!-- labels on paths -->
+      <text x="506" y="226" text-anchor="middle" font-family="Trebuchet MS,sans-serif" font-weight="700" font-size="20" fill="#11904A" transform="rotate(-58 506 226)">True</text>
+      <text x="458" y="330" text-anchor="middle" font-family="Trebuchet MS,sans-serif" font-weight="700" font-size="20" fill="#C92A3B" transform="rotate(52 458 330)">False</text>
+
+      <!-- ticket booth (the check point) -->
+      <g id="booth" transform="translate(60,-150)">
+        <rect x="268" y="300" width="104" height="86" fill="#F7E3B5" stroke="#1B2A49" stroke-width="3"/>
+        <rect x="282" y="310" width="76" height="38" rx="4" fill="#2A3558"/>
+        <!-- staff member -->
+        <g>
+          <rect x="305" y="335" width="30" height="16" rx="7" fill="#11904A"/>
+          <circle cx="320" cy="325" r="10" fill="#C58C5C" stroke="#1B2A49" stroke-width="2"/>
+          <path d="M309 320 Q320 308 331 320 Z" fill="#C92A3B" stroke="#1B2A49" stroke-width="1.5"/>
+          <rect x="327" y="318" width="9" height="3" rx="1.5" fill="#C92A3B"/>
+          <circle cx="316" cy="326" r="1.4" fill="#1B2A49"/><circle cx="324" cy="326" r="1.4" fill="#1B2A49"/>
+        </g>
+        <rect x="282" y="310" width="76" height="38" rx="4" fill="none" stroke="#1B2A49" stroke-width="3"/>
+        <rect x="276" y="346" width="88" height="6" rx="2" fill="#8A5A2B" stroke="#1B2A49" stroke-width="2"/>
+        <rect id="panel" x="280" y="358" width="80" height="22" rx="5" fill="#fff" stroke="#1B2A49" stroke-width="2" style="transition:fill .3s"/>
+        <text id="panelText" x="320" y="374" text-anchor="middle" font-family="Trebuchet MS,sans-serif" font-weight="700" font-size="12" fill="#1B2A49">AGE CHECK</text>
+        <!-- striped awning -->
+        <path d="M262 286 H378 V302 Q 368.5 312 359 302 Q 349.5 312 340 302 Q 330.5 312 321 302 Q 311.5 312 302 302 Q 292.5 312 283 302 Q 272.5 312 262 302Z" fill="#fff" stroke="#1B2A49" stroke-width="2.5"/>
+        <g fill="#C92A3B"><rect x="264" y="287" width="17" height="14"/><rect x="302" y="287" width="19" height="14"/><rect x="340" y="287" width="19" height="14"/></g>
+      </g>
+      <!-- staff speech bubble -->
+      <g id="bubble" opacity="0" style="transition:opacity .25s">
+        <path d="M348 62 H532 Q540 62 540 70 V110 Q540 118 532 118 H412 L398 136 L396 118 H348 Q340 118 340 110 V70 Q340 62 348 62Z" fill="#fff" stroke="#1B2A49" stroke-width="2.5"/>
+        <text id="bub1" x="440" y="86" text-anchor="middle" font-family="Trebuchet MS,sans-serif" font-weight="700" font-size="16" fill="#1B2A49"></text>
+        <text id="bub2" x="440" y="107" text-anchor="middle" font-family="Trebuchet MS,sans-serif" font-weight="700" font-size="14" fill="#51628A"></text>
+      </g>
+
+      <!-- rider speech bubble -->
+      <g id="rbubble" opacity="0" style="transition:opacity .25s">
+        <path d="M250 94 H322 Q330 94 330 102 V124 Q330 132 322 132 H302 L294 144 L290 132 H250 Q242 132 242 124 V102 Q242 94 250 94Z" fill="#FFF7E0" stroke="#1B2A49" stroke-width="2.5"/>
+        <text id="rb" x="286" y="119" text-anchor="middle" font-family="Trebuchet MS,sans-serif" font-weight="700" font-size="16" fill="#1B2A49"></text>
+      </g>
+
+      <g id="people"></g>
+    </svg>
+  </div>
+
+  <p class="caption" id="caption" aria-live="polite"></p>
+  <div class="controls"><button class="btn" id="mainBtn">Next rider</button></div>
+  <div class="def-box"><b>Selection</b> lets a program make a decision based on a <b>condition</b>. A condition is either <b>True</b> or <b>False</b>.</div>
+</section>
+
+<!-- ================= QUIZ ================= -->
+<section id="quiz" class="screen">
+  <div class="top">
+    <button class="btn light" data-go="home">Back</button>
+    <h2>Quiz</h2>
+    <button class="btn light" data-go="anim">Watch again</button>
+  </div>
+  <div class="card" id="quizBody"></div>
+</section>
+
+<script>
+const $=s=>document.querySelector(s);
+const reduce=false; // always animate: this is a teaching demo
+const wait=ms=>new Promise(r=>setTimeout(r,reduce?50:ms));
+
+/* ---------- screens ---------- */
+function go(id){if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen();document.querySelectorAll("#home,.screen").forEach(s=>s.classList.toggle("show",s.id===id));window.scrollTo(0,0)}
+document.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>go(b.dataset.go));
+
+/* ---------- full screen ---------- */
+const fsBtn=$("#fsBtn");
+if(!(document.fullscreenEnabled||document.webkitFullscreenEnabled))fsBtn.hidden=true;
+fsBtn.onclick=()=>{
+  if(document.fullscreenElement||document.webkitFullscreenElement){(document.exitFullscreen||document.webkitExitFullscreen).call(document);return}
+  const a=$("#anim"),req=a.requestFullscreen||a.webkitRequestFullscreen;
+  try{const r=req.call(a);if(r&&r.catch)r.catch(()=>{})}catch(e){}
+};
+document.addEventListener("fullscreenchange",()=>{fsBtn.textContent=document.fullscreenElement?"Exit full screen":"Full screen"});
+
+/* ---------- animation ---------- */
+const NS="http://www.w3.org/2000/svg";
+const COLORS=["#6C4AB6","#1C6FD1","#E07A1F","#C2387A"];
+const NAMES=["Sam","Mia","Leo","Ava","Zac","Ben","Isla","Omar","Priya","Jack","Ella","Kai"];
+const FIRST=[["Sam",19],["Mia",12],["Leo",18],["Ava",17]];
+const QX=[226,163,100,37], QY=262, STOP=296;
+let queue=[],seatCount=0,stage="ready",current=null,round=0;
+const btn=$("#mainBtn");
+
+function el(tag,attrs,parent){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e}
+function makePerson(name,age,color){
+  const g=el("g",{},$("#people"));
+  el("rect",{x:-27,y:-118,width:54,height:42,rx:10,fill:"#fff",stroke:"#1B2A49","stroke-width":2.5},g);
+  const t1=el("text",{x:0,y:-100,"text-anchor":"middle","font-family":"Trebuchet MS,sans-serif","font-weight":700,"font-size":15,fill:"#1B2A49"},g);t1.textContent=name;
+  const t2=el("text",{x:0,y:-83,"text-anchor":"middle","font-family":"Trebuchet MS,sans-serif","font-weight":700,"font-size":13,fill:"#51628A"},g);t2.textContent="age "+age;
+  el("path",{d:"M-5 -76 L0 -69 L5 -76Z",fill:"#fff",stroke:"#1B2A49","stroke-width":2},g);
+  const l1=el("line",{x1:-6,y1:-12,x2:-8,y2:10,stroke:"#1B2A49","stroke-width":5,"stroke-linecap":"round"},g);
+  const l2=el("line",{x1:6,y1:-12,x2:8,y2:10,stroke:"#1B2A49","stroke-width":5,"stroke-linecap":"round"},g);
+  el("rect",{x:-14,y:-46,width:28,height:36,rx:9,fill:color,stroke:"#1B2A49","stroke-width":2.5},g);
+  el("circle",{cx:0,cy:-55,r:12,fill:"#F5C9A0",stroke:"#1B2A49","stroke-width":2.5},g);
+  return{g,name,age,color,l1,l2,t1,t2,x:0,y:0};
+}
+function place(p,x,y,phase=0){p.x=x;p.y=y;p.g.setAttribute("transform",`translate(${x.toFixed(1)},${(y-Math.abs(Math.sin(phase))*3).toFixed(1)})`);
+  const s=Math.sin(phase)*7;p.l1.setAttribute("x2",-8+s);p.l2.setAttribute("x2",8-s)}
+function walk(p,points,speed=150){
+  return new Promise(res=>{
+    if(reduce){const q=points[points.length-1];place(p,q[0],q[1]);return res()}
+    let i=0;
+    (function leg(){
+      if(i>=points.length){place(p,p.x,p.y,0);return res()}
+      const[tx,ty]=points[i],sx=p.x,sy=p.y,d=Math.hypot(tx-sx,ty-sy),dur=Math.max(1,d/speed*1000);let t0=null;
+      function f(t){if(t0===null)t0=t;const k=Math.min(1,(t-t0)/dur);place(p,sx+(tx-sx)*k,sy+(ty-sy)*k,k*d/10);if(k<1)requestAnimationFrame(f);else{i++;leg()}}
+      requestAnimationFrame(f);
+    })();
+  });
+}
+function say(a,b){$("#bub1").textContent=a;$("#bub2").textContent=b;$("#bub1").setAttribute("y",b?86:96);$("#bubble").setAttribute("opacity",1)}
+function riderSay(t){$("#rb").textContent=t;$("#rbubble").setAttribute("opacity",t?1:0)}
+function caption(html,c){const e=$("#caption");e.innerHTML=html;e.className="caption "+(c||"")}
+function resetCheck(){
+  $("#panel").setAttribute("fill","#fff");$("#panelText").textContent="AGE CHECK";$("#panelText").setAttribute("fill","#1B2A49");
+  $("#bubble").setAttribute("opacity",0);riderSay("");
+  $("#roadT").setAttribute("stroke","#D9C59C");$("#roadF").setAttribute("stroke","#D9C59C");
+}
+function newQueue(){
+  $("#people").innerHTML="";$("#seats").innerHTML="";seatCount=0;resetCheck();
+  let list;
+  if(round===0)list=FIRST;
+  else{
+    const names=NAMES.slice().sort(()=>Math.random()-.5).slice(0,4);
+    let ages;do{ages=[0,0,0,0].map(()=>Math.random()<.2?18:5+Math.floor(Math.random()*26))}while(!ages.some(a=>a>=18)||!ages.some(a=>a<18));
+    list=names.map((n,i)=>[n,ages[i]]);
+  }
+  round++;
+  queue=list.map(([n,a],i)=>{const p=makePerson(n,a,COLORS[i]);place(p,QX[i],QY);return p});
+  queue.slice().reverse().forEach(p=>$("#people").appendChild(p.g));
+  caption(`${queue.length} people are waiting in the queue. Who can ride?`);
+  btn.textContent="Next rider";stage="ready";
+}
+async function swing(){
+  const ship=$("#ship");$("#sparkles").setAttribute("opacity",1);
+  if(reduce){await wait(800);$("#sparkles").setAttribute("opacity",0);return}
+  await new Promise(res=>{
+    let t0=null;const dur=4200;
+    function f(t){if(t0===null)t0=t;const k=(t-t0)/dur;
+      const ang=Math.sin(k*Math.PI*6)*32*Math.sin(Math.min(1,k)*Math.PI);
+      ship.setAttribute("transform",`rotate(${ang.toFixed(2)} 690 40)`);
+      if(k<1)requestAnimationFrame(f);else{ship.setAttribute("transform","");res()}}
+    requestAnimationFrame(f);
+  });
+  $("#sparkles").setAttribute("opacity",0);
+}
+function seat(p){
+  const sx=[-48,-16,16,48][seatCount++]+690,g=el("g",{},$("#seats"));
+  el("line",{x1:sx-7,y1:116,x2:sx-15,y2:92,stroke:"#1B2A49","stroke-width":4,"stroke-linecap":"round"},g);
+  el("line",{x1:sx+7,y1:116,x2:sx+15,y2:92,stroke:"#1B2A49","stroke-width":4,"stroke-linecap":"round"},g);
+  el("rect",{x:sx-11,y:110,width:22,height:26,rx:7,fill:p.color,stroke:"#1B2A49","stroke-width":2},g);
+  el("circle",{cx:sx,cy:100,r:10,fill:"#F5C9A0",stroke:"#1B2A49","stroke-width":2},g);
+}
+
+btn.onclick=async()=>{
+  if(stage==="ready"){
+    btn.disabled=true;resetCheck();current=queue.shift();
+    const steps=[walk(current,[[STOP,QY]])];
+    queue.forEach((p,i)=>steps.push(walk(p,[[QX[i],QY]],110)));
+    caption(`${current.name} is next. ${current.name} is ${current.age}.`);
+    await Promise.all(steps);
+    say("Hi there! How old are you?","");caption(`The ticket checker asks ${current.name} their age.`);await wait(1600);
+    riderSay(`I'm ${current.age}.`);await wait(1400);
+    say("Thanks! Let me check...","");
+    caption(`The condition: is ${current.name}'s age (${current.age}) 18 or more?<br><span style="font-size:.8em;color:var(--muted)">What do you think: True or False?</span>`);
+    btn.textContent="Check the condition";btn.disabled=false;stage="check";btn.focus();
+  }else if(stage==="check"){
+    btn.disabled=true;const p=current,ok=p.age>=18;
+    $("#panel").setAttribute("fill",ok?"#11904A":"#C92A3B");$("#panelText").textContent=ok?"TRUE":"FALSE";$("#panelText").setAttribute("fill","#fff");
+    riderSay("");
+    say(ok?"Perfect, in you go!":"Sorry, not this time.",ok?"Enjoy the ride!":"The exit is just over there.");
+    $(ok?"#roadT":"#roadF").setAttribute("stroke",ok?"#9BE0B3":"#F4B3BA");
+    caption(ok?`${p.age} is 18 or more, so the condition is <b>True</b>.${p.age===18?"<br><span style='font-size:.8em'>18 counts, because the rule is 18 <i>or more</i>.</span>":""}`:`${p.age} is less than 18, so the condition is <b>False</b>.`,ok?"t":"f");
+    await wait(1500);
+    if(ok){
+      $("#bubble").setAttribute("opacity",0);caption(`True, so ${p.name} takes the True path to the ride.`,"t");
+      await walk(p,[[440,QY],[500,165],[575,165]]);
+      p.g.remove();seat(p);
+      caption(`Wheee! ${p.name} is on the Swing Ship!`,"t");
+      await swing();
+    }else{
+      $("#bubble").setAttribute("opacity",0);caption(`False, so ${p.name} takes the False path to the exit.`,"f");
+      await walk(p,[[440,QY],[510,350],[675,350]]);
+      $("#gate").style.transform="scaleX(.12)";await wait(700);
+      await walk(p,[[860,350]]);p.g.remove();
+      $("#gate").style.transform="";await wait(500);
+      caption(`The gate opened and ${p.name} left through the exit.`,"f");
+    }
+    if(queue.length){btn.textContent="Next rider";stage="ready"}
+    else{
+      caption(`Everyone has had a turn. The same condition was checked for each person, and the answer chose their path. That's selection!`);
+      btn.textContent="New queue";stage="done";
+    }
+    btn.disabled=false;btn.focus();
+  }else if(stage==="done"){newQueue()}
+};
+newQueue();
+
+/* ---------- quiz ---------- */
+const hl=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/(".*?")/g,'<span class="s">$1</span>').replace(/\b(if|elif|else)\b/g,'<span class="k">$1</span>');
+const Q=[
+  {q:"What is selection?",o:["Repeating code over and over","A program making a decision based on a condition","Storing data in a variable","Showing text on the screen"],a:1,why:"Selection allows a program to make a decision based on a condition.",
+   h:["Repeating code is called a loop. Selection is about making a choice.",null,"Storing data is what a variable does. Think about the ride: what did the ticket checker do?","Showing text is what print() does. Think about the ride: what did the ticket checker do?"]},
+  {q:"A condition can only be…",o:["True or False","A number","Yes, No or Maybe","A word"],a:0,why:"A condition is something that can be either True or False.",
+   h:[null,"Think about the ticket booth sign. What were the only two things it could show?","Computers can't answer \"maybe\". There are only two possible answers. What were they at the booth?","Think about the ticket booth sign. What were the only two things it could show?"]},
+  {q:"Is this condition True or False?",c:"12 >= 10",o:["True","False"],a:0,why:"12 is greater than 10, so it is True.",
+   h:[null,"Read >= as \"greater than or equal to\". Is 12 bigger than 10?"]},
+  {q:"Is this condition True or False?",c:"7 == 10",o:["True","False"],a:1,why:"7 is not equal to 10, so it is False.",
+   h:["== asks \"are these exactly the same?\". Are 7 and 10 the same number?",null]},
+  {q:"Which symbol means \"not equal to\"?",o:["==","!=",">=","<="],a:1,why:"!= means not equal to. == means equal to.",
+   h:["== means \"equal to\", which is the opposite of what we want. Look for the one with an exclamation mark.",null,">= means \"greater than or equal to\". Look for the one with an exclamation mark.","<= means \"less than or equal to\". Look for the one with an exclamation mark."]},
+  {q:"Which line checks whether age is 16?",o:["age = 16","age == 16","age => 16","age is 16"],a:1,why:"One = stores a value. Two == compares two values.",
+   h:["Careful! A single = stores 16 in age. It doesn't check anything. How many equals signs do we need to compare?",null,"=> isn't a Python symbol, and we want exactly 16, not \"16 or more\". Which symbol means \"equal to\"?","That's how we'd say it in English, but Python uses a symbol for \"equal to\". Which one?"]},
+  {q:"What must go at the end of an if line?",o:["A full stop .","A colon :","A comma ,","Nothing"],a:1,why:"if, elif and else lines always end with a colon :",
+   h:["Python doesn't use full stops at the end of lines. Look back at the code: what's after if age >= 13?",null,"Commas are used to separate things, like inside print(). Look back at the code: what's after if age >= 13?","Python needs a symbol to know that indented lines are coming next. Which one?"]},
+  {q:"Which part runs when the condition is False?",o:["The if part","The else part","Both parts","Neither part"],a:1,why:"The if part runs when the condition is True. The else part runs when it is False.",
+   h:["The if part only runs when the condition is True. Think about Mia at the booth: which path did she take?",null,"Only one part runs. That's the whole point of selection: choosing one path.","One part always runs, because everyone takes a path at the booth. Which one runs when the answer is False?"]},
+  {q:"What will this program output?",c:'age = 10\nif age >= 13:\n    print("You are a teenager")\nelse:\n    print("You are not a teenager")',o:["You are a teenager","You are not a teenager"],a:1,why:"10 >= 13 is False, so the else part runs.",
+   h:["Check the condition: is 10 greater than or equal to 13? If it's False, which part runs?",null]},
+  {q:"What will this program output?",c:'score = 65\nif score >= 80:\n    print("Excellent")\nelif score >= 50:\n    print("Pass")\nelse:\n    print("Try again")',o:["Excellent","Pass","Try again"],a:1,why:"65 >= 80 is False. 65 >= 50 is True, so it prints Pass.",
+   h:["Is 65 greater than or equal to 80? If not, Python moves on and checks the next condition.",null,"else only runs if every condition above is False. Is 65 greater than or equal to 50?"]},
+];
+let qi=0,score=0,tries=0;
+function show(){
+  const b=$("#quizBody");
+  if(qi>=Q.length){
+    b.innerHTML=`<div class="end"><p style="margin:0">Right first time</p><p class="big">${score}/${Q.length}</p><p>${score===Q.length?"Perfect! Every answer right first time.":score>=7?"Great work! You got every question in the end.":"You got there in the end! Watch the animation again and see if you can beat your score."}</p><button class="btn" id="again">Try again</button></div>`;
+    $("#again").onclick=()=>{qi=0;score=0;show()};return;
+  }
+  const x=Q[qi],mono=x.c||x.o.some(o=>/[=<>!]/.test(o));tries=0;
+  b.innerHTML=`<div class="progress"><i style="width:${qi/Q.length*100}%"></i></div>
+    <p style="margin:0;color:var(--muted)">Question ${qi+1} of ${Q.length}</p>
+    <p class="q">${x.q}</p>${x.c?`<div class="code">${hl(x.c)}</div>`:""}
+    <div class="opts">${x.o.map((o,k)=>`<button class="opt" data-k="${k}">${mono?`<code>${o.replace(/</g,"&lt;")}</code>`:o}</button>`).join("")}</div>
+    <div class="fb" id="fb" aria-live="polite"></div>`;
+  b.querySelectorAll(".opt").forEach(o=>o.onclick=()=>answer(+o.dataset.k,o));
+}
+function answer(k,btnEl){
+  const x=Q[qi],fb=$("#fb");
+  if(k!==x.a){
+    tries++;btnEl.classList.add("f");btnEl.disabled=true;
+    fb.className="fb f";
+    fb.innerHTML=`<b>${tries===1?"Not quite.":"Still not it, but keep going!"}</b> ${x.h[k]} <b>Have another go.</b>`;
+    return;
+  }
+  if(tries===0)score++;
+  document.querySelectorAll(".opt").forEach(o=>o.disabled=true);btnEl.classList.add("t");
+  fb.className="fb t";
+  fb.innerHTML=`<b>${tries===0?"Correct, first time!":"Yes, you got it!"}</b> ${x.why}<div style="margin-top:.6rem"><button class="btn" id="next">${qi===Q.length-1?"See my score":"Next question"}</button></div>`;
+  $("#next").onclick=()=>{qi++;show()};$("#next").focus();
+}
+show();
+document.getElementById("jsWarn").remove();
+</script>
+</body>
+</html>
